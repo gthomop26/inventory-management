@@ -5,6 +5,7 @@ export default {
     inventory: 'Inventory',
     orders: 'Orders',
     finance: 'Finance',
+    restocking: 'Restocking',
     demandForecast: 'Demand Forecast',
     companyName: 'Catalyst Components',
     subtitle: 'Inventory Management System'
@@ -112,6 +113,17 @@ export default {
     onTimeDelivery: 'On-Time Delivery',
     itemsCount: '{count} items',
     quantity: 'Qty',
+    submitted: {
+      title: 'Submitted Orders',
+      empty: 'No restock orders have been submitted yet',
+      orderNumber: 'Order Number',
+      items: 'Items',
+      orderDate: 'Order Date',
+      leadTime: 'Lead Time (Days)',
+      expectedDelivery: 'Expected Delivery',
+      total: 'Total',
+      status: 'Status'
+    },
     table: {
       orderNumber: 'Order Number',
       orderId: 'Order ID',
@@ -126,6 +138,46 @@ export default {
       status: 'Status',
       expectedDelivery: 'Expected Delivery',
       actualDelivery: 'Actual Delivery'
+    }
+  },
+
+  // Restocking
+  restocking: {
+    title: 'Restocking',
+    description: 'Plan replenishment purchases against forecasted demand within a budget',
+    budget: 'Budget',
+    allocated: 'Allocated',
+    remaining: 'Remaining',
+    overBudget: 'Selected items exceed the budget by {amount}',
+    budgetSlider: 'Restocking budget',
+    recommendations: 'Recommendations',
+    noGaps: 'No items need restocking - inventory covers forecasted demand',
+    select: 'Select',
+    placeOrder: 'Place Order',
+    submitting: 'Placing order...',
+    selectedCount: '{count} items selected',
+    loadError: 'Failed to load restocking data: {message}',
+    submitError: 'Failed to place order: {message}',
+    table: {
+      sku: 'SKU',
+      itemName: 'Item Name',
+      trend: 'Trend',
+      onHand: 'On Hand',
+      forecast: 'Forecasted Demand',
+      gap: 'Gap',
+      unitCost: 'Unit Cost',
+      leadTime: 'Lead Time (Days)',
+      quantity: 'Order Qty',
+      lineCost: 'Cost'
+    },
+    confirmation: {
+      title: 'Order placed',
+      orderNumber: 'Order Number',
+      leadTime: 'Lead Time',
+      days: '{count} days',
+      expectedDelivery: 'Expected Delivery',
+      total: 'Total',
+      viewOrders: 'View in Orders'
     }
   },
 

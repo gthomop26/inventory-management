@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime, timedelta
 from typing import List, Optional
 from pydantic import BaseModel
-from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders
+from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders, restock_orders
 
 app = FastAPI(title="Factory Inventory Management System")
 
@@ -67,6 +68,7 @@ class InventoryItem(BaseModel):
     unit_cost: float
     location: str
     last_updated: str
+    lead_time_days: Optional[int] = None
 
 class Order(BaseModel):
     id: str
@@ -120,6 +122,31 @@ class CreatePurchaseOrderRequest(BaseModel):
     expected_delivery_date: str
     notes: Optional[str] = None
 
+class RestockItem(BaseModel):
+    sku: str
+    quantity: int
+
+class RestockOrderRequest(BaseModel):
+    items: List[RestockItem]
+
+class RestockOrderLine(BaseModel):
+    sku: str
+    name: str
+    quantity: int
+    unit_cost: float
+    line_total: float
+    lead_time_days: int
+
+class RestockOrder(BaseModel):
+    id: str
+    order_number: str
+    items: List[RestockOrderLine]
+    status: str
+    order_date: str
+    lead_time_days: int
+    expected_delivery: str
+    total_value: float
+
 # API endpoints
 @app.get("/")
 def root():
@@ -160,6 +187,52 @@ def get_order(order_id: str):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
+
+DEFAULT_LEAD_TIME_DAYS = 14
+
+@app.post("/api/restock-orders", response_model=RestockOrder, status_code=201)
+def create_restock_order(request: RestockOrderRequest):
+    """Place a restock order for one or more inventory SKUs"""
+    if not request.items:
+        raise HTTPException(status_code=400, detail="Order must contain at least one item")
+    if any(i.quantity <= 0 for i in request.items):
+        raise HTTPException(status_code=400, detail="Quantity must be greater than zero")
+
+    lines = []
+    for req in request.items:
+        inv = next((i for i in inventory_items if i["sku"] == req.sku), None)
+        if not inv:
+            raise HTTPException(status_code=404, detail=f"SKU {req.sku} not found")
+        lead = inv.get("lead_time_days") or DEFAULT_LEAD_TIME_DAYS
+        # Price comes from server-side unit_cost; client-supplied prices are never trusted
+        lines.append({
+            "sku": inv["sku"], "name": inv["name"], "quantity": req.quantity,
+            "unit_cost": inv["unit_cost"],
+            "line_total": round(req.quantity * inv["unit_cost"], 2),
+            "lead_time_days": lead,
+        })
+
+    # Items ship independently, so the order is complete only when the slowest item arrives
+    lead_time = max(line["lead_time_days"] for line in lines)
+    today = datetime.now()
+    order_id = str(len(restock_orders) + 1)
+    order = {
+        "id": order_id,
+        "order_number": f"RST-{today.year}-{int(order_id):04d}",
+        "items": lines,
+        "status": "Processing",
+        "order_date": today.strftime("%Y-%m-%d"),
+        "lead_time_days": lead_time,
+        "expected_delivery": (today + timedelta(days=lead_time)).strftime("%Y-%m-%d"),
+        "total_value": round(sum(l["line_total"] for l in lines), 2),
+    }
+    restock_orders.append(order)
+    return order
+
+@app.get("/api/restock-orders", response_model=List[RestockOrder])
+def get_restock_orders():
+    """Get submitted restock orders, newest first"""
+    return list(reversed(restock_orders))
 
 @app.get("/api/demand", response_model=List[DemandForecast])
 def get_demand_forecasts():
